@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://gym-backend-4tbh.onrender.com";
 
 export async function fetchMembers(params = {}) {
   const query = new URLSearchParams(params).toString();
