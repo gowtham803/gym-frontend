@@ -5,35 +5,95 @@
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background-color: #070709;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #060608;
   color: #f4f4f6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, .brand-font {
+h1, h2, h3, h4, .brand-font {
   font-family: 'Syne', sans-serif;
   letter-spacing: -0.03em;
 }
 
 /* Glassmorphism & ambient glowing lighting */
 .glass-panel {
-  background: rgba(18, 18, 24, 0.65);
+  background: rgba(16, 16, 22, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
 }
 
 .glow-red {
   position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(225, 29, 72, 0.18) 0%, rgba(225, 29, 72, 0) 70%);
-  filter: blur(80px);
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(225, 29, 72, 0.22) 0%, rgba(225, 29, 72, 0) 70%);
+  filter: blur(90px);
   pointer-events: none;
   z-index: 0;
+  animation: pulseGlow 12s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15) translate(20px, -20px);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(0.95) translate(-15px, 15px);
+    opacity: 0.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.kpi-card-hover:hover {
+  transform: translateY(-4px) scale(1.015) !important;
+  border-color: rgba(225, 29, 72, 0.4) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(225, 29, 72, 0.15) !important;
+}
+
+.roster-row:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.athlete-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(225, 29, 72, 0.35) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(225, 29, 72, 0.12) !important;
+}
+
+/* Toast animations */
+.toast-item {
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 /* Custom scrollbars */
@@ -41,7 +101,18 @@ h1, h2, h3, .brand-font {
   height: 6px;
   width: 6px;
 }
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(225, 29, 72, 0.5);
+}
+
+/* Inputs & buttons active micro-feedback */
+button:active {
+  transform: scale(0.97) !important;
 }

@@ -1,412 +1,498 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { fetchMembers, fetchStats, addMember, updateMember, deleteMember } from "./api";
+import KpiCards from "./components/KpiCards";
+import FilterBar from "./components/FilterBar";
 import MemberTable from "./components/MemberTable";
+import MemberCardGrid from "./components/MemberCardGrid";
+import MemberModal from "./components/MemberModal";
+import AthleteDossierModal from "./components/AthleteDossierModal";
+import Toast from "./components/Toast";
+import { playSound } from "./utils/audio";
+import { exportRosterToCsv } from "./utils/exportCsv";
+
+const getTodayStr = () => new Date().toISOString().split("T")[0];
 
 export default function App() {
   const [members, setMembers] = useState([]);
   const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0, frozen: 0 });
   const [statusFilter, setStatusFilter] = useState("All");
+  const [durationFilter, setDurationFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState("table"); // 'table' | 'grid'
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [selectedDossierMember, setSelectedDossierMember] = useState(null);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const [toasts, setToasts] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: "days_left", direction: "asc" });
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "+91 ",
-    duration: "1 Month",
-    start_date: todayStr,
-  });
+  const todayStr = useMemo(() => getTodayStr(), []);
 
-  const loadData = async () => {
+  const addToast = useCallback((message, type = "success", title = null) => {
+    const id = Date.now() + Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, message, type, title }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3800);
+  }, []);
+
+  const handleDismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const loadData = useCallback(async () => {
     try {
       const data = await fetchMembers({
         status: statusFilter === "All" ? "" : statusFilter,
         search,
       });
-      setMembers(Array.isArray(data) ? data : []);
+      const memberList = Array.isArray(data) ? data : [];
+      setMembers(memberList);
+
       const s = await fetchStats();
       if (s) setStats(s);
+
+      setSelectedDossierMember((prev) => {
+        if (!prev) return null;
+        const fresh = memberList.find((m) => m.id === prev.id);
+        return fresh || prev;
+      });
     } catch (e) {
       console.error("Failed to load records:", e);
+      addToast("Could not sync with club database. Check connection.", "error", "Sync Warning");
     }
-  };
+  }, [statusFilter, search, addToast]);
 
   useEffect(() => {
-    loadData();
-  }, [statusFilter, search]);
+    let ignore = false;
+    (async () => {
+      try {
+        const data = await fetchMembers({
+          status: statusFilter === "All" ? "" : statusFilter,
+          search,
+        });
+        if (!ignore) {
+          const memberList = Array.isArray(data) ? data : [];
+          setMembers(memberList);
+          setSelectedDossierMember((prev) => {
+            if (!prev) return null;
+            const fresh = memberList.find((m) => m.id === prev.id);
+            return fresh || prev;
+          });
+        }
+        const s = await fetchStats();
+        if (!ignore && s) setStats(s);
+      } catch (e) {
+        if (!ignore) {
+          console.error("Failed to load records:", e);
+          addToast("Could not sync with club database. Check connection.", "error", "Sync Warning");
+        }
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [statusFilter, search, addToast]);
 
-  const handleOpenAdd = () => {
-    setEditingMember(null);
-    setFormData({
-      name: "",
-      email: "",
-      phone: "+91 ",
-      duration: "1 Month",
-      start_date: todayStr,
+  // Audio helper
+  const triggerSound = useCallback(
+    (type = "click") => {
+      playSound(type, soundEnabled);
+    },
+    [soundEnabled]
+  );
+
+  // Sorting logic
+  const handleSort = (key) => {
+    triggerSound("pop");
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
     });
+  };
+
+  // Filtered & Sorted Members
+  const processedMembers = useMemo(() => {
+    let result = [...members];
+
+    // Duration filter
+    if (durationFilter !== "All") {
+      result = result.filter((m) => m.duration === durationFilter);
+    }
+
+    // Sort
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+
+        if (sortConfig.key === "name") {
+          valA = (valA || "").toLowerCase();
+          valB = (valB || "").toLowerCase();
+          return sortConfig.direction === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        }
+
+        if (sortConfig.key === "days_left") {
+          valA = valA ?? 0;
+          valB = valB ?? 0;
+          return sortConfig.direction === "asc" ? valA - valB : valB - valA;
+        }
+
+        if (sortConfig.key === "expiry_date") {
+          valA = valA || "";
+          valB = valB || "";
+          return sortConfig.direction === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        }
+
+        if (sortConfig.key === "member_id") {
+          valA = (valA || "").toLowerCase();
+          valB = (valB || "").toLowerCase();
+          return sortConfig.direction === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        }
+
+        return 0;
+      });
+    }
+
+    return result;
+  }, [members, durationFilter, sortConfig]);
+
+  // Modal actions
+  const handleOpenAdd = useCallback(() => {
+    triggerSound("click");
+    setEditingMember(null);
+    setIsModalOpen(true);
+  }, [triggerSound]);
+
+  const handleOpenEdit = (m) => {
+    triggerSound("click");
+    setEditingMember(m);
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (m) => {
-    setEditingMember(m);
-    setFormData({
-      name: m.name || "",
-      email: m.email || "",
-      phone: m.phone || "+91 ",
-      duration: m.duration || "1 Month",
-      start_date: m.start_date || todayStr,
-    });
-    setIsModalOpen(true);
+  const handleOpenDossier = (m) => {
+    triggerSound("click");
+    setSelectedDossierMember(m);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Remove athlete permanently from the roster?")) {
-      await deleteMember(id);
-      loadData();
+    triggerSound("pop");
+    if (window.confirm("Remove athlete permanently from the club roster?")) {
+      try {
+        await deleteMember(id);
+        triggerSound("success");
+        addToast("Athlete record removed permanently.", "info", "Record Deleted");
+        loadData();
+      } catch {
+        addToast("Error deleting member.", "error");
+      }
     }
   };
 
   const handleStatusChange = async (m, newStatus) => {
-    await updateMember(m.id, { ...m, status: newStatus });
-    loadData();
+    triggerSound("pop");
+    try {
+      await updateMember(m.id, { ...m, status: newStatus });
+      triggerSound("success");
+      addToast(
+        `${m.name}'s pass is now ${newStatus}.`,
+        "success",
+        newStatus === "FROZEN" ? "Pass Paused" : "Pass Activated"
+      );
+      loadData();
+    } catch {
+      addToast("Failed to update status.", "error");
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Quick 1-Click Fast Renewal
+  const handleQuickRenew = async (m, durationExtension) => {
+    triggerSound("pop");
+    try {
+      // If current expiry is in future, start from current expiry, else start from today
+      const today = new Date();
+      let startFrom = today;
+      if (m.expiry_date) {
+        const exp = new Date(m.expiry_date);
+        if (exp > today) {
+          startFrom = exp;
+        }
+      }
+
+      const stDateStr = startFrom.toISOString().split("T")[0];
+
+      await updateMember(m.id, {
+        name: m.name,
+        email: m.email,
+        phone: m.phone,
+        duration: durationExtension,
+        start_date: stDateStr,
+        status: "ACTIVE",
+      });
+
+      triggerSound("success");
+      addToast(
+        `Extended ${m.name}'s pass by ${durationExtension}!`,
+        "success",
+        "Membership Extended"
+      );
+      loadData();
+    } catch {
+      addToast("Failed to extend pass.", "error");
+    }
+  };
+
+  const handleModalSubmit = async (formData) => {
+    triggerSound("click");
     try {
       if (editingMember) {
         await updateMember(editingMember.id, formData);
+        triggerSound("success");
+        addToast(`Updated details for ${formData.name}`, "success", "Athlete Updated");
       } else {
         await addMember(formData);
+        triggerSound("success");
+        addToast(`Registered ${formData.name} to Sanctum Roster`, "success", "Athlete Enrolled");
       }
       setIsModalOpen(false);
       loadData();
     } catch (err) {
       console.error(err);
-      alert("Error saving record.");
+      addToast("Error saving record to database.", "error");
     }
   };
 
-  return (
-    <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden", padding: "40px 32px 80px" }}>
-      {/* Ambient Red & Crimson Lighting Glows (Inspired by your screenshots) */}
-      <div className="glow-red" style={{ top: "-120px", right: "-100px", opacity: 0.8 }} />
-      <div className="glow-red" style={{ bottom: "-150px", left: "-100px", width: 600, height: 600, opacity: 0.5 }} />
+  const handleExportCsv = () => {
+    triggerSound("click");
+    const success = exportRosterToCsv(processedMembers);
+    if (success) {
+      triggerSound("success");
+      addToast(`Exported ${processedMembers.length} athletes to CSV.`, "info", "Roster Exported");
+    }
+  };
 
-      <div style={{ maxWidth: 1320, margin: "0 auto", position: "relative", zIndex: 1 }}>
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    if (next) {
+      playSound("pop", true);
+      addToast("UI sound effects enabled", "info");
+    } else {
+      addToast("UI sounds muted", "info");
+    }
+  };
+
+  const handleCopyPassId = (id) => {
+    triggerSound("pop");
+    addToast(`Copied ${id} to clipboard!`, "info");
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden", padding: "40px 32px 90px" }}>
+      {/* Dynamic Ambient Crimson & Obsidian Lighting Glows */}
+      <div className="glow-red" style={{ top: "-140px", right: "-120px", opacity: 0.8 }} />
+      <div className="glow-red" style={{ bottom: "-180px", left: "-120px", width: 650, height: 650, opacity: 0.55 }} />
+
+      {/* Floating Toast Notification Stack */}
+      <Toast toasts={toasts} onDismiss={handleDismissToast} />
+
+      <div style={{ maxWidth: 1360, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {/* Top Editorial Nav Header */}
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 48 }}>
+        <header
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 44,
+            flexWrap: "wrap",
+            gap: 20,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <div
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
+                width: 48,
+                height: 48,
+                borderRadius: 14,
                 background: "linear-gradient(135deg, #e11d48 0%, #881337 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 900,
-                fontSize: 20,
+                fontSize: 22,
                 color: "#fff",
-                boxShadow: "0 8px 24px rgba(225, 29, 72, 0.4)",
+                boxShadow: "0 10px 28px rgba(225, 29, 72, 0.45)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
               }}
             >
               ✦
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", color: "#e11d48", textTransform: "uppercase" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.22em", color: "#e11d48", textTransform: "uppercase" }}>
                 Private Athletic Club
               </div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, color: "#fff" }}>
+              <h1 style={{ fontSize: 32, fontWeight: 900, margin: "2px 0 0", color: "#fff", letterSpacing: "-0.03em" }}>
                 SANCTUM ROSTER
               </h1>
             </div>
           </div>
 
-          <button
-            onClick={handleOpenAdd}
-            style={{
-              background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
-              color: "#fff",
-              border: "none",
-              padding: "13px 26px",
-              borderRadius: 30,
-              fontWeight: 700,
-              fontSize: 13,
-              letterSpacing: "0.04em",
-              cursor: "pointer",
-              boxShadow: "0 10px 25px rgba(225, 29, 72, 0.35)",
-              transition: "transform 0.2s, box-shadow 0.2s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-          >
-            + Register New Athlete
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={handleOpenAdd}
+              style={{
+                background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
+                color: "#fff",
+                border: "none",
+                padding: "14px 28px",
+                borderRadius: 30,
+                fontWeight: 800,
+                fontSize: 13,
+                letterSpacing: "0.04em",
+                cursor: "pointer",
+                boxShadow: "0 10px 28px rgba(225, 29, 72, 0.4)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 14px 34px rgba(225, 29, 72, 0.55)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 10px 28px rgba(225, 29, 72, 0.4)";
+              }}
+            >
+              <span>+ Register Athlete</span>
+              <span
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontFamily: "monospace",
+                }}
+              >
+                N
+              </span>
+            </button>
+          </div>
         </header>
 
-        {/* Top Metric Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 40 }}>
-          {[
-            { label: "TOTAL ROSTER", val: stats.total, tag: "Enrolled" },
-            { label: "ACTIVE MEMBERS", val: stats.active, tag: "In Good Standing", highlight: "#10b981" },
-            { label: "EXPIRING IN 7D", val: stats.expiring, tag: "Action Required", highlight: "#f59e0b" },
-            { label: "EXPIRED", val: stats.expired, tag: "Renewal Due", highlight: "#e11d48" },
-          ].map((c, i) => (
-            <div key={i} className="glass-panel" style={{ padding: "24px 26px", borderRadius: 18 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#71717a", textTransform: "uppercase" }}>
-                {c.label}
-              </div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: c.highlight || "#fafafa", marginTop: 8 }} className="brand-font">
-                {c.val}
-              </div>
-              <div style={{ fontSize: 12, color: "#a1a1aa", marginTop: 4 }}>{c.tag}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Filter & Search Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 18, marginBottom: 24, flexWrap: "wrap" }}>
-          {/* Status Tabs */}
-          <div style={{ display: "flex", gap: 8, background: "rgba(18, 18, 24, 0.7)", padding: "6px", borderRadius: 30, border: "1px solid rgba(255, 255, 255, 0.06)" }}>
-            {["All", "ACTIVE", "EXPIRING", "EXPIRED", "FROZEN"].map((s) => {
-              const active = statusFilter === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  style={{
-                    background: active ? "#e11d48" : "transparent",
-                    color: active ? "#fff" : "#a1a1aa",
-                    border: "none",
-                    padding: "8px 18px",
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: "0.05em",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search Input */}
-          <div style={{ position: "relative", minWidth: 320 }}>
-            <input
-              type="text"
-              placeholder="Search athlete by name, email, or ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: "100%",
-                background: "rgba(18, 18, 24, 0.7)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 30,
-                padding: "12px 20px",
-                color: "#fff",
-                fontSize: 13,
-                outline: "none",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Table */}
-        <MemberTable
-          members={members}
-          onEdit={handleOpenEdit}
-          onDelete={handleDelete}
-          onStatusChange={handleStatusChange}
+        {/* Interactive KPI Cards (Clickable Filter Triggers) */}
+        <KpiCards
+          stats={stats}
+          currentFilter={statusFilter}
+          onSelectFilter={(filterKey) => {
+            triggerSound("pop");
+            setStatusFilter(filterKey);
+          }}
         />
+
+        {/* Interactive Filter, Search & View Controls */}
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          statusFilter={statusFilter}
+          onStatusChange={(status) => {
+            triggerSound("click");
+            setStatusFilter(status);
+          }}
+          durationFilter={durationFilter}
+          onDurationChange={(dur) => {
+            triggerSound("click");
+            setDurationFilter(dur);
+          }}
+          viewMode={viewMode}
+          onViewModeChange={(mode) => {
+            triggerSound("click");
+            setViewMode(mode);
+          }}
+          stats={stats}
+          soundEnabled={soundEnabled}
+          onToggleSound={handleToggleSound}
+          onExportCsv={handleExportCsv}
+          onOpenAdd={handleOpenAdd}
+        />
+
+        {/* Athlete Roster: Switch between Table View and Card Grid View */}
+        {viewMode === "table" ? (
+          <MemberTable
+            members={processedMembers}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            onOpenDossier={handleOpenDossier}
+            onEdit={handleOpenEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+            onQuickRenew={handleQuickRenew}
+          />
+        ) : (
+          <MemberCardGrid
+            members={processedMembers}
+            onOpenDossier={handleOpenDossier}
+            onEdit={handleOpenEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+            onQuickRenew={handleQuickRenew}
+          />
+        )}
       </div>
 
-      {/* Add / Edit Luxury Modal */}
-      {isModalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0, 0, 0, 0.82)",
-            backdropFilter: "blur(12px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: 20,
-          }}
-        >
-          <div
-            className="glass-panel"
-            style={{
-              width: "100%",
-              maxWidth: 480,
-              borderRadius: 24,
-              padding: "36px 32px",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.8)",
-            }}
-          >
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", color: "#e11d48", textTransform: "uppercase" }}>
-              Roster Management
-            </div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 4, marginBottom: 24, color: "#fff" }}>
-              {editingMember ? "Edit Athlete Details" : "Register Athlete"}
-            </h2>
+      {/* Interactive Athlete Dossier / Profile Drawer Modal */}
+      <AthleteDossierModal
+        member={selectedDossierMember}
+        onClose={() => {
+          triggerSound("click");
+          setSelectedDossierMember(null);
+        }}
+        onEdit={handleOpenEdit}
+        onDelete={handleDelete}
+        onStatusChange={handleStatusChange}
+        onQuickRenew={handleQuickRenew}
+        onCopyId={handleCopyPassId}
+      />
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#a1a1aa", textTransform: "uppercase" }}>Full Name</label>
-                <input
-                  required
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{
-                    width: "100%",
-                    marginTop: 6,
-                    padding: "12px 14px",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: 10,
-                    color: "#fff",
-                    fontSize: 14,
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#a1a1aa", textTransform: "uppercase" }}>Email</label>
-                <input
-                  required
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  style={{
-                    width: "100%",
-                    marginTop: 6,
-                    padding: "12px 14px",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: 10,
-                    color: "#fff",
-                    fontSize: 14,
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#a1a1aa", textTransform: "uppercase" }}>Phone Number</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{
-                    width: "100%",
-                    marginTop: 6,
-                    padding: "12px 14px",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: 10,
-                    color: "#fff",
-                    fontSize: 14,
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#a1a1aa", textTransform: "uppercase" }}>Joining Date</label>
-                  <input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    style={{
-                      width: "100%",
-                      marginTop: 6,
-                      padding: "12px 14px",
-                      background: "rgba(255, 255, 255, 0.04)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      borderRadius: 10,
-                      color: "#fff",
-                      fontSize: 13,
-                      outline: "none",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#a1a1aa", textTransform: "uppercase" }}>Membership Duration</label>
-                  <select
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                    style={{
-                      width: "100%",
-                      marginTop: 6,
-                      padding: "12px 14px",
-                      background: "#18181b",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      borderRadius: 10,
-                      color: "#fff",
-                      fontSize: 13,
-                      outline: "none",
-                    }}
-                  >
-                    <option value="1 Month">1 Month</option>
-                    <option value="3 Months">3 Months</option>
-                    <option value="6 Months">6 Months</option>
-                    <option value="1 Year">1 Year</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 16 }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{
-                    background: "transparent",
-                    color: "#a1a1aa",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    padding: "10px 20px",
-                    borderRadius: 24,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
-                    color: "#fff",
-                    border: "none",
-                    padding: "10px 24px",
-                    borderRadius: 24,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    boxShadow: "0 8px 20px rgba(225, 29, 72, 0.35)",
-                  }}
-                >
-                  {editingMember ? "Save Changes" : "Confirm & Save"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Add / Edit Luxury Registration Modal */}
+      <MemberModal
+        key={isModalOpen ? (editingMember ? `edit-${editingMember.id}` : "new") : "closed"}
+        isOpen={isModalOpen}
+        editingMember={editingMember}
+        initialData={
+          editingMember
+            ? {
+                name: editingMember.name || "",
+                email: editingMember.email || "",
+                phone: editingMember.phone || "+91 ",
+                duration: editingMember.duration || "1 Month",
+                start_date: editingMember.start_date || todayStr,
+              }
+            : {
+                name: "",
+                email: "",
+                phone: "+91 ",
+                duration: "1 Month",
+                start_date: todayStr,
+              }
+        }
+        onClose={() => {
+          triggerSound("click");
+          setIsModalOpen(false);
+        }}
+        onSubmit={handleModalSubmit}
+      />
     </div>
   );
 }
