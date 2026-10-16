@@ -4,11 +4,17 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #060608;
   color: #f4f4f6;
   overflow-x: hidden;
+  max-width: 100vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -64,6 +70,15 @@ h1, h2, h3, h4, .brand-font {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .kpi-card-hover:hover {
   transform: translateY(-4px) scale(1.015) !important;
   border-color: rgba(225, 29, 72, 0.4) !important;
@@ -75,7 +90,7 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .athlete-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   border-color: rgba(225, 29, 72, 0.35) !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(225, 29, 72, 0.12) !important;
 }
@@ -114,5 +129,49 @@ h1, h2, h3, h4, .brand-font {
 
 /* Inputs & buttons active micro-feedback */
 button:active {
-  transform: scale(0.97) !important;
+  transform: scale(0.97);
+}
+
+/* Responsive Styles */
+@media (max-width: 960px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  .mobile-hamburger-btn {
+    display: flex !important;
+  }
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .glass-panel {
+    padding: 24px 18px !important;
+    border-radius: 20px !important;
+  }
+  .roster-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .glow-red {
+    animation: none !important;
+  }
 }

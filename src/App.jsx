@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { fetchMembers, fetchStats, addMember, updateMember, deleteMember } from "./api";
+import Navbar from "./components/Navbar";
+import HeroSection from "./components/HeroSection";
+import TimetableSection from "./components/TimetableSection";
+import PricingSection from "./components/PricingSection";
+import BmiCalculatorSection from "./components/BmiCalculatorSection";
+import GallerySection from "./components/GallerySection";
+import TestimonialsSection from "./components/TestimonialsSection";
+import FaqSection from "./components/FaqSection";
+import EnquirySection from "./components/EnquirySection";
+import Footer from "./components/Footer";
+
 import KpiCards from "./components/KpiCards";
 import FilterBar from "./components/FilterBar";
 import MemberTable from "./components/MemberTable";
@@ -9,10 +20,12 @@ import AthleteDossierModal from "./components/AthleteDossierModal";
 import Toast from "./components/Toast";
 import { playSound } from "./utils/audio";
 import { exportRosterToCsv } from "./utils/exportCsv";
+import { GYM_CONFIG } from "./config/gymConfig";
 
 const getTodayStr = () => new Date().toISOString().split("T")[0];
 
 export default function App() {
+  // Member Roster State
   const [members, setMembers] = useState([]);
   const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0, frozen: 0 });
   const [statusFilter, setStatusFilter] = useState("All");
@@ -21,9 +34,17 @@ export default function App() {
   const [viewMode, setViewMode] = useState("table"); // 'table' | 'grid'
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Modal & Dossier State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [selectedDossierMember, setSelectedDossierMember] = useState(null);
+
+  // Add Member Performance & Loading States (Bug Fix)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  // Selected Plan from Pricing Cards to pass to Enquiry form
+  const [enquirySelectedPlan, setEnquirySelectedPlan] = useState("");
 
   const [toasts, setToasts] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: "days_left", direction: "asc" });
@@ -119,12 +140,10 @@ export default function App() {
   const processedMembers = useMemo(() => {
     let result = [...members];
 
-    // Duration filter
     if (durationFilter !== "All") {
       result = result.filter((m) => m.duration === durationFilter);
     }
 
-    // Sort
     if (sortConfig.key) {
       result.sort((a, b) => {
         let valA = a[sortConfig.key];
@@ -171,12 +190,16 @@ export default function App() {
   const handleOpenAdd = useCallback(() => {
     triggerSound("click");
     setEditingMember(null);
+    setSubmitError(null);
+    setIsSubmitting(false);
     setIsModalOpen(true);
   }, [triggerSound]);
 
   const handleOpenEdit = (m) => {
     triggerSound("click");
     setEditingMember(m);
+    setSubmitError(null);
+    setIsSubmitting(false);
     setIsModalOpen(true);
   };
 
@@ -219,7 +242,6 @@ export default function App() {
   const handleQuickRenew = async (m, durationExtension) => {
     triggerSound("pop");
     try {
-      // If current expiry is in future, start from current expiry, else start from today
       const today = new Date();
       let startFrom = today;
       if (m.expiry_date) {
@@ -252,22 +274,50 @@ export default function App() {
     }
   };
 
+  // High Performance Add / Edit Member Submit Handler
   const handleModalSubmit = async (formData) => {
+    if (isSubmitting) return; // Prevent duplicate clicks
     triggerSound("click");
+    setIsSubmitting(true);
+    setSubmitError(null);
+
     try {
       if (editingMember) {
-        await updateMember(editingMember.id, formData);
+        const updated = await updateMember(editingMember.id, formData);
         triggerSound("success");
         addToast(`Updated details for ${formData.name}`, "success", "Athlete Updated");
+
+        // Immediate optimistic state update
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === editingMember.id ? (updated && updated.id ? updated : { ...m, ...formData }) : m
+          )
+        );
       } else {
-        await addMember(formData);
+        const created = await addMember(formData);
         triggerSound("success");
         addToast(`Registered ${formData.name} to Sanctum Roster`, "success", "Athlete Enrolled");
+
+        // Immediate optimistic state update
+        if (created && created.id) {
+          setMembers((prev) => [created, ...prev]);
+        }
+        setStats((prev) => ({
+          ...prev,
+          total: (prev.total || 0) + 1,
+          active: (prev.active || 0) + 1,
+        }));
       }
+
+      setIsSubmitting(false);
       setIsModalOpen(false);
+
+      // Re-sync with backend in background
       loadData();
     } catch (err) {
       console.error(err);
+      setIsSubmitting(false);
+      setSubmitError("Failed to save to club database. Please check connection and try again.");
       addToast("Error saving record to database.", "error");
     }
   };
@@ -297,101 +347,142 @@ export default function App() {
     addToast(`Copied ${id} to clipboard!`, "info");
   };
 
+  // When user clicks "Enquire for this Plan" on pricing cards
+  const handleSelectPlan = (duration) => {
+    setEnquirySelectedPlan(duration);
+    const target = document.querySelector("#enquiry");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden", padding: "40px 32px 90px" }}>
+    <div style={{ minHeight: "100vh", position: "relative", overflowX: "hidden" }}>
       {/* Dynamic Ambient Crimson & Obsidian Lighting Glows */}
-      <div className="glow-red" style={{ top: "-140px", right: "-120px", opacity: 0.8 }} />
-      <div className="glow-red" style={{ bottom: "-180px", left: "-120px", width: 650, height: 650, opacity: 0.55 }} />
+      <div className="glow-red" style={{ top: "-140px", right: "-120px", opacity: 0.7 }} />
+      <div className="glow-red" style={{ top: "35%", left: "-140px", width: 600, height: 600, opacity: 0.45 }} />
+      <div className="glow-red" style={{ bottom: "-180px", right: "-120px", width: 650, height: 650, opacity: 0.55 }} />
 
       {/* Floating Toast Notification Stack */}
       <Toast toasts={toasts} onDismiss={handleDismissToast} />
 
-      <div style={{ maxWidth: 1360, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        {/* Top Editorial Nav Header */}
-        <header
+      {/* Sticky Navigation Bar with Mobile Drawer */}
+      <Navbar soundEnabled={soundEnabled} onToggleSound={handleToggleSound} />
+
+      {/* Section 1: Hero Section */}
+      <HeroSection />
+
+      {/* Section 2: Weekly Class Timetable */}
+      <TimetableSection />
+
+      {/* Section 3: Membership Plans & Pricing */}
+      <PricingSection onSelectPlan={handleSelectPlan} />
+
+      {/* Section 4: Interactive BMI Calculator */}
+      <BmiCalculatorSection />
+
+      {/* Section 5: Facility Image Gallery with Lightbox */}
+      <GallerySection />
+
+      {/* Section 6: Athlete Testimonials */}
+      <TestimonialsSection />
+
+      {/* Section 7: Frequently Asked Questions Accordion */}
+      <FaqSection />
+
+      {/* Section 8: Live Club Roster & Member Management Portal */}
+      <section
+        id="roster"
+        style={{
+          padding: "80px 24px",
+          maxWidth: 1360,
+          margin: "0 auto",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.2em", color: "#e11d48", textTransform: "uppercase" }}>
+            Operational Management
+          </div>
+          <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 2.8rem)", fontWeight: 900, color: "#fff", margin: "8px 0 12px", letterSpacing: "-0.03em" }}>
+            SANCTUM ATHLETE ROSTER
+          </h2>
+          <p style={{ color: "#a1a1aa", fontSize: 14, maxWidth: 580, margin: "0 auto" }}>
+            Real-time athlete registry, biometric turnstile status, live expiry countdowns, and instant membership renewals.
+          </p>
+        </div>
+
+        {/* Action Header with Fast Add Button */}
+        <div
+          className="roster-header"
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 44,
+            marginBottom: 32,
             flexWrap: "wrap",
-            gap: 20,
+            gap: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: "linear-gradient(135deg, #e11d48 0%, #881337 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-                fontSize: 22,
-                color: "#fff",
-                boxShadow: "0 10px 28px rgba(225, 29, 72, 0.45)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-              }}
-            >
-              ✦
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.22em", color: "#e11d48", textTransform: "uppercase" }}>
-                Private Athletic Club
-              </div>
-              <h1 style={{ fontSize: 32, fontWeight: 900, margin: "2px 0 0", color: "#fff", letterSpacing: "-0.03em" }}>
-                SANCTUM ROSTER
-              </h1>
-            </div>
-          </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button
-              onClick={handleOpenAdd}
+            <span
               style={{
-                background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
-                color: "#fff",
-                border: "none",
-                padding: "14px 28px",
-                borderRadius: 30,
-                fontWeight: 800,
-                fontSize: 13,
-                letterSpacing: "0.04em",
-                cursor: "pointer",
-                boxShadow: "0 10px 28px rgba(225, 29, 72, 0.4)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#10b981",
+                boxShadow: "0 0 10px #10b981",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 14px 34px rgba(225, 29, 72, 0.55)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 10px 28px rgba(225, 29, 72, 0.4)";
+            />
+            <span style={{ fontSize: 13, color: "#cbd5e1", fontWeight: 700 }}>
+              Live Database Connected ({stats.total} Enrolled Athletes)
+            </span>
+          </div>
+
+          <button
+            onClick={handleOpenAdd}
+            style={{
+              background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
+              color: "#fff",
+              border: "none",
+              padding: "13px 26px",
+              borderRadius: 30,
+              fontWeight: 800,
+              fontSize: 13,
+              letterSpacing: "0.04em",
+              cursor: "pointer",
+              boxShadow: "0 10px 28px rgba(225, 29, 72, 0.4)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 14px 34px rgba(225, 29, 72, 0.55)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 10px 28px rgba(225, 29, 72, 0.4)";
+            }}
+          >
+            <span>+ Register Athlete</span>
+            <span
+              style={{
+                background: "rgba(0, 0, 0, 0.25)",
+                padding: "2px 6px",
+                borderRadius: 6,
+                fontSize: 10,
+                fontFamily: "monospace",
               }}
             >
-              <span>+ Register Athlete</span>
-              <span
-                style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  padding: "2px 6px",
-                  borderRadius: 6,
-                  fontSize: 10,
-                  fontFamily: "monospace",
-                }}
-              >
-                N
-              </span>
-            </button>
-          </div>
-        </header>
+              N
+            </span>
+          </button>
+        </div>
 
-        {/* Interactive KPI Cards (Clickable Filter Triggers) */}
+        {/* Interactive KPI Cards */}
         <KpiCards
           stats={stats}
           currentFilter={statusFilter}
@@ -401,7 +492,7 @@ export default function App() {
           }}
         />
 
-        {/* Interactive Filter, Search & View Controls */}
+        {/* Interactive Filter Bar */}
         <FilterBar
           search={search}
           onSearchChange={setSearch}
@@ -427,7 +518,7 @@ export default function App() {
           onOpenAdd={handleOpenAdd}
         />
 
-        {/* Athlete Roster: Switch between Table View and Card Grid View */}
+        {/* Table View / Card Grid View */}
         {viewMode === "table" ? (
           <MemberTable
             members={processedMembers}
@@ -449,9 +540,15 @@ export default function App() {
             onQuickRenew={handleQuickRenew}
           />
         )}
-      </div>
+      </section>
 
-      {/* Interactive Athlete Dossier / Profile Drawer Modal */}
+      {/* Section 9: Enquiry & Guest Pass Request */}
+      <EnquirySection key={enquirySelectedPlan || "default"} selectedPlan={enquirySelectedPlan} />
+
+      {/* Footer */}
+      <Footer />
+
+      {/* Interactive Athlete Dossier Modal */}
       <AthleteDossierModal
         member={selectedDossierMember}
         onClose={() => {
@@ -465,11 +562,13 @@ export default function App() {
         onCopyId={handleCopyPassId}
       />
 
-      {/* Add / Edit Luxury Registration Modal */}
+      {/* High-Performance Add / Edit Member Registration Modal */}
       <MemberModal
         key={isModalOpen ? (editingMember ? `edit-${editingMember.id}` : "new") : "closed"}
         isOpen={isModalOpen}
         editingMember={editingMember}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
         initialData={
           editingMember
             ? {
@@ -490,9 +589,49 @@ export default function App() {
         onClose={() => {
           triggerSound("click");
           setIsModalOpen(false);
+          setIsSubmitting(false);
+          setSubmitError(null);
         }}
         onSubmit={handleModalSubmit}
       />
+
+      {/* Floating WhatsApp Quick Action Button for Mobile & Desktop */}
+      <a
+        href={`https://wa.me/${GYM_CONFIG.whatsapp.number}?text=${encodeURIComponent(
+          GYM_CONFIG.whatsapp.defaultMessage
+        )}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Chat on WhatsApp"
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 90,
+          background: "#25d366",
+          color: "#000",
+          width: 52,
+          height: 52,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 26,
+          boxShadow: "0 8px 24px rgba(37, 211, 102, 0.4)",
+          textDecoration: "none",
+          transition: "transform 0.2s, box-shadow 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.08)";
+          e.currentTarget.style.boxShadow = "0 12px 30px rgba(37, 211, 102, 0.55)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow = "0 8px 24px rgba(37, 211, 102, 0.4)";
+        }}
+      >
+        💬
+      </a>
     </div>
   );
 }

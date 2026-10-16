@@ -4,6 +4,8 @@ export default function MemberModal({
   isOpen,
   editingMember,
   initialData,
+  isSubmitting = false,
+  submitError = null,
   onClose,
   onSubmit,
 }) {
@@ -33,6 +35,12 @@ export default function MemberModal({
 
   const previewExpiry = getEstimatedExpiry(formData.start_date, formData.duration);
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isSubmitting) return; // Prevent double submit
+    onSubmit(formData);
+  };
+
   return (
     <div
       style={{
@@ -49,7 +57,7 @@ export default function MemberModal({
         animation: "fadeIn 0.2s ease-out",
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && !isSubmitting) onClose();
       }}
     >
       <div
@@ -58,11 +66,13 @@ export default function MemberModal({
           width: "100%",
           maxWidth: 520,
           borderRadius: 26,
-          padding: "34px 32px",
+          padding: "32px 30px",
           border: "1px solid rgba(255, 255, 255, 0.12)",
           boxShadow: "0 25px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(225, 29, 72, 0.15)",
           position: "relative",
           overflow: "hidden",
+          maxHeight: "92vh",
+          overflowY: "auto",
         }}
       >
         {/* Accent Glow in Modal */}
@@ -80,7 +90,7 @@ export default function MemberModal({
         />
 
         {/* Modal Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", color: "#e11d48", textTransform: "uppercase" }}>
               Roster Registration
@@ -91,6 +101,7 @@ export default function MemberModal({
           </div>
           <button
             onClick={onClose}
+            disabled={isSubmitting}
             style={{
               background: "rgba(255, 255, 255, 0.06)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -102,12 +113,33 @@ export default function MemberModal({
               alignItems: "center",
               justifyContent: "center",
               fontSize: 15,
-              cursor: "pointer",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
             }}
           >
             ✕
           </button>
         </div>
+
+        {/* Error Banner if Submission Failed */}
+        {submitError && (
+          <div
+            style={{
+              background: "rgba(225, 29, 72, 0.15)",
+              border: "1px solid rgba(225, 29, 72, 0.4)",
+              color: "#fca5a5",
+              borderRadius: 12,
+              padding: "10px 14px",
+              fontSize: 12,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span>⚠️</span>
+            <span>{submitError}</span>
+          </div>
+        )}
 
         {/* Live Athlete Pass Preview Card */}
         <div
@@ -116,7 +148,7 @@ export default function MemberModal({
             border: "1px solid rgba(225, 29, 72, 0.25)",
             borderRadius: 16,
             padding: "16px 20px",
-            marginBottom: 22,
+            marginBottom: 20,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -161,19 +193,14 @@ export default function MemberModal({
         </div>
 
         {/* Input Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit(formData);
-          }}
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
-        >
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#a1a1aa", textTransform: "uppercase" }}>
               Full Name *
             </label>
             <input
               required
+              disabled={isSubmitting}
               type="text"
               placeholder="e.g. Marcus Vance"
               value={formData.name}
@@ -189,6 +216,7 @@ export default function MemberModal({
                 fontSize: 14,
                 outline: "none",
                 transition: "border 0.2s",
+                opacity: isSubmitting ? 0.7 : 1,
               }}
               onFocus={(e) => (e.target.style.borderColor = "#e11d48")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255, 255, 255, 0.12)")}
@@ -201,6 +229,7 @@ export default function MemberModal({
             </label>
             <input
               required
+              disabled={isSubmitting}
               type="email"
               placeholder="athlete@example.com"
               value={formData.email}
@@ -216,6 +245,7 @@ export default function MemberModal({
                 fontSize: 14,
                 outline: "none",
                 transition: "border 0.2s",
+                opacity: isSubmitting ? 0.7 : 1,
               }}
               onFocus={(e) => (e.target.style.borderColor = "#e11d48")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255, 255, 255, 0.12)")}
@@ -227,6 +257,7 @@ export default function MemberModal({
               Phone Number
             </label>
             <input
+              disabled={isSubmitting}
               type="text"
               placeholder="+91 9876543210"
               value={formData.phone}
@@ -242,6 +273,7 @@ export default function MemberModal({
                 fontSize: 14,
                 outline: "none",
                 transition: "border 0.2s",
+                opacity: isSubmitting ? 0.7 : 1,
               }}
               onFocus={(e) => (e.target.style.borderColor = "#e11d48")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255, 255, 255, 0.12)")}
@@ -254,6 +286,7 @@ export default function MemberModal({
                 Start Date
               </label>
               <input
+                disabled={isSubmitting}
                 type="date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
@@ -267,6 +300,7 @@ export default function MemberModal({
                   color: "#fff",
                   fontSize: 13,
                   outline: "none",
+                  opacity: isSubmitting ? 0.7 : 1,
                 }}
               />
             </div>
@@ -276,6 +310,7 @@ export default function MemberModal({
                 Membership Duration
               </label>
               <select
+                disabled={isSubmitting}
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                 style={{
@@ -288,6 +323,7 @@ export default function MemberModal({
                   color: "#fff",
                   fontSize: 13,
                   outline: "none",
+                  opacity: isSubmitting ? 0.7 : 1,
                 }}
               >
                 <option value="1 Month">1 Month</option>
@@ -301,6 +337,7 @@ export default function MemberModal({
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 18 }}>
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={onClose}
               style={{
                 background: "transparent",
@@ -310,26 +347,51 @@ export default function MemberModal({
                 borderRadius: 24,
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+                opacity: isSubmitting ? 0.5 : 1,
               }}
             >
               Cancel
             </button>
             <button
               type="submit"
+              disabled={isSubmitting}
               style={{
-                background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
+                background: isSubmitting
+                  ? "rgba(225, 29, 72, 0.5)"
+                  : "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
                 color: "#fff",
                 border: "none",
                 padding: "11px 26px",
                 borderRadius: 24,
                 fontSize: 13,
                 fontWeight: 700,
-                cursor: "pointer",
-                boxShadow: "0 8px 24px rgba(225, 29, 72, 0.35)",
+                cursor: isSubmitting ? "wait" : "pointer",
+                boxShadow: isSubmitting ? "none" : "0 8px 24px rgba(225, 29, 72, 0.35)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s",
               }}
             >
-              {editingMember ? "Save Changes" : "Register Athlete"}
+              {isSubmitting ? (
+                <>
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: "2px solid rgba(255,255,255,0.3)",
+                      borderTopColor: "#fff",
+                      borderRadius: "50%",
+                      animation: "spin 0.6s linear infinite",
+                      display: "inline-block",
+                    }}
+                  />
+                  <span>Saving Athlete...</span>
+                </>
+              ) : (
+                <span>{editingMember ? "Save Changes" : "Register Athlete"}</span>
+              )}
             </button>
           </div>
         </form>
