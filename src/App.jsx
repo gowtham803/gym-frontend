@@ -11,6 +11,10 @@ import FaqSection from "./components/FaqSection";
 import EnquirySection from "./components/EnquirySection";
 import Footer from "./components/Footer";
 
+import AiCoachSection from "./components/AiCoachSection";
+import AiConciergeChat from "./components/AiConciergeChat";
+import AiRosterInsights from "./components/AiRosterInsights";
+
 import KpiCards from "./components/KpiCards";
 import FilterBar from "./components/FilterBar";
 import MemberTable from "./components/MemberTable";
@@ -378,7 +382,10 @@ export default function App() {
       {/* Section 3: Membership Plans & Pricing */}
       <PricingSection onSelectPlan={handleSelectPlan} />
 
-      {/* Section 4: Interactive BMI Calculator */}
+      {/* Section 4: AI Athletic Workout Generator & Coaching */}
+      <AiCoachSection onNotify={addToast} />
+
+      {/* Section 5: Interactive BMI Calculator */}
       <BmiCalculatorSection />
 
       {/* Section 5: Facility Image Gallery with Lightbox */}
@@ -481,6 +488,9 @@ export default function App() {
             </span>
           </button>
         </div>
+
+        {/* AI Roster Diagnostics & Retention Intelligence */}
+        <AiRosterInsights members={processedMembers} stats={stats} />
 
         {/* Interactive KPI Cards */}
         <KpiCards
@@ -632,6 +642,9 @@ export default function App() {
       >
         💬
       </a>
+
+      {/* Floating AI Concierge Assistant */}
+      <AiConciergeChat onSound={triggerSound} />
     </div>
   );
 }

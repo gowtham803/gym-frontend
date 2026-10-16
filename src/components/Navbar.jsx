@@ -26,6 +26,7 @@ export default function Navbar({ soundEnabled, onToggleSound }) {
     { label: "Overview", href: "#hero" },
     { label: "Schedule", href: "#timetable" },
     { label: "Memberships", href: "#plans" },
+    { label: "AI Coach", href: "#ai-coach" },
     { label: "BMI Tool", href: "#calculator" },
     { label: "Gallery", href: "#gallery" },
     { label: "Reviews", href: "#testimonials" },
