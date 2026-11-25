@@ -36,4 +36,23 @@ export const GYM_CONFIG = {
     facebook: "https://facebook.com",
     maps: "https://maps.google.com",
   },
+
+  // Operational Management & Staff Allowlist
+  managerEmails: [
+    "admin@sanctum.club",
+    "manager@sanctum.club",
+    "concierge@sanctumclub.com",
+    "gowtham803@gmail.com",
+    "gowtham@sanctum.club",
+  ],
+  isManagerEmail: (email) => {
+    if (!email) return false;
+    const lower = email.toLowerCase().trim();
+    return (
+      GYM_CONFIG.managerEmails.includes(lower) ||
+      lower.includes("manager") ||
+      lower.includes("admin") ||
+      lower.endsWith("@sanctum.club")
+    );
+  },
 };

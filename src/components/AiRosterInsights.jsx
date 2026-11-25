@@ -12,10 +12,12 @@ export default function AiRosterInsights({ members, stats }) {
 
   const retentionScore = total > 0 ? Math.round(((active + expiring) / total) * 100) : 100;
 
-  // Identify athletes expiring within 7 days
+  // Identify athletes expiring within 7 days or expired who need immediate renewal outreach
   const priorityFollowups = (members || []).filter(
-    (m) => m.status === "EXPIRING" || (m.days_left !== undefined && m.days_left >= 0 && m.days_left <= 7)
+    (m) => m.status === "EXPIRING" || m.status === "EXPIRED" || (m.days_left !== undefined && m.days_left <= 7)
   );
+
+  const flaggedCount = expired + (expiring > 0 ? expiring : priorityFollowups.filter(m => m.status === "EXPIRING").length);
 
   return (
     <div
@@ -74,7 +76,7 @@ export default function AiRosterInsights({ members, stats }) {
               </span>
             </div>
             <div style={{ fontSize: 12, color: "#a1a1aa", marginTop: 2 }}>
-              Automated club diagnostics: {expiring} athletes flagged for immediate renewal outreach.
+              Automated club diagnostics: {flaggedCount} athlete{flaggedCount === 1 ? "" : "s"} flagged for immediate renewal outreach.
             </div>
           </div>
         </div>

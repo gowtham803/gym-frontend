@@ -14,7 +14,7 @@ export default function PricingSection({ onSelectPlan }) {
         "Biometric turnstile keycard entry",
         "Access to daily group classes (capped at 12)",
         "Complimentary towel service & locker access",
-        "Freezed pass allowed: up to 7 days",
+        "Membership freeze allowed: up to 7 days",
       ],
       tag: "Standard",
     },
@@ -30,7 +30,7 @@ export default function PricingSection({ onSelectPlan }) {
         "1x Complimentary Movement & InBody Scan",
         "Access to infrared sauna & recovery suite",
         "2 Guest passes per quarter",
-        "Freezed pass allowed: up to 14 days",
+        "Membership freeze allowed: up to 14 days",
       ],
       tag: "Value",
     },
@@ -46,7 +46,7 @@ export default function PricingSection({ onSelectPlan }) {
         "2x InBody Body Composition Scans",
         "Priority class reservation window",
         "5 Guest passes included",
-        "Freezed pass allowed: up to 30 days",
+        "Membership freeze allowed: up to 30 days",
         "Sanctum Athlete Kit (Gym Bag + Shaker)",
       ],
       tag: "Most Popular",
@@ -141,12 +141,21 @@ export default function PricingSection({ onSelectPlan }) {
               <div style={{ fontSize: 11, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {p.subtitle}
               </div>
-              <h3 style={{ fontSize: 22, fontWeight: 900, color: "#fff", margin: "6px 0 16px" }}>
+              <h3 style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: "6px 0 16px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.015em" }}>
                 {p.name}
               </h3>
 
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 24 }}>
-                <span style={{ fontSize: 36, fontWeight: 900, color: "#fff", fontFamily: "Syne" }}>
+                <span
+                  style={{
+                    fontSize: 36,
+                    fontWeight: 900,
+                    color: "#fff",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontVariantNumeric: "tabular-nums",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
                   {p.price}
                 </span>
                 <span style={{ fontSize: 12, color: "#71717a" }}>{p.period}</span>

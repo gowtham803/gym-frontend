@@ -73,7 +73,7 @@ export default function AiCoachSection({ onNotify }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(225, 29, 72, 0.1)", border: "1px solid rgba(225, 29, 72, 0.3)", padding: "4px 14px", borderRadius: 20, fontSize: 11, fontWeight: 800, color: "#fb7185", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>
           <span>✦</span> Intelligent Athletic Coaching
         </div>
-        <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 2.8rem)", fontWeight: 900, color: "#fff", margin: "0 0 14px", letterSpacing: "-0.03em" }}>
+        <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 2.8rem)", fontWeight: 900, color: "#fff", margin: "0 0 14px", letterSpacing: "-0.03em", lineHeight: 1.15 }}>
           AI ATHLETIC WORKOUT GENERATOR
         </h2>
         <p style={{ color: "#a1a1aa", fontSize: 14, maxWidth: 580, margin: "0 auto" }}>
@@ -214,7 +214,7 @@ export default function AiCoachSection({ onNotify }) {
               <div style={{ fontSize: 11, fontWeight: 800, color: "#e11d48", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                 AI Personalized Output
               </div>
-              <h3 style={{ fontSize: 22, fontWeight: 900, color: "#fff", margin: "2px 0 0" }}>
+              <h3 style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: "2px 0 0", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.015em" }}>
                 {generatedPlan.goalName} — {days}-Day Split
               </h3>
             </div>
@@ -281,7 +281,16 @@ export default function AiCoachSection({ onNotify }) {
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#fb7185", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                     {dayItem.day}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e4e4e7", margin: "4px 0 16px" }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#e4e4e7",
+                      margin: "4px 0 16px",
+                      minHeight: "2.8em",
+                      lineHeight: 1.4,
+                    }}
+                  >
                     Focus: <span style={{ color: "#a1a1aa", fontWeight: 400 }}>{dayItem.focus}</span>
                   </div>
 
@@ -316,6 +325,8 @@ export default function AiCoachSection({ onNotify }) {
                             padding: "3px 8px",
                             borderRadius: 6,
                             border: "1px solid rgba(225, 29, 72, 0.25)",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
                           }}
                         >
                           {ex.rest}

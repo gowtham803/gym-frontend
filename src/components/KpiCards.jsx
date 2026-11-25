@@ -116,13 +116,14 @@ export default function KpiCards({ stats, currentFilter, onSelectFilter }) {
             {/* Metric Value */}
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 10 }}>
               <span
-                className="brand-font"
                 style={{
                   fontSize: 38,
                   fontWeight: 900,
                   color: c.color || "#fff",
                   lineHeight: 1,
-                  letterSpacing: "-0.02em",
+                  fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "-0.03em",
                 }}
               >
                 {c.count}

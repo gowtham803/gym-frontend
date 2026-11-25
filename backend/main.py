@@ -99,6 +99,15 @@ class MemberInput(BaseModel):
     start_date: Optional[str] = None
     status: Optional[str] = "ACTIVE"
 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer(auto_error=False)
+
+def get_current_token_optional(creds: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    if creds:
+        return creds.credentials
+    return None
+
 app = FastAPI()
 
 app.add_middleware(
@@ -113,6 +122,7 @@ app.add_middleware(
 def get_members(
     search: Optional[str] = None,
     status: Optional[str] = None,
+    token: Optional[str] = Depends(get_current_token_optional),
     db: Session = Depends(get_db)
 ):
     query = db.query(Member)

@@ -82,8 +82,8 @@ export default function AiConciergeChat({ onSound }) {
         aria-label="Open AI Concierge Chat"
         style={{
           position: "fixed",
-          bottom: 24,
-          left: 24,
+          bottom: 86,
+          right: 24,
           zIndex: 90,
           background: "linear-gradient(135deg, #181824 0%, #0d0d12 100%)",
           border: "1px solid rgba(225, 29, 72, 0.4)",
@@ -130,12 +130,16 @@ export default function AiConciergeChat({ onSound }) {
           style={{
             position: "fixed",
             bottom: 84,
-            left: 24,
+            right: 24,
+            left: "auto",
             width: "calc(100vw - 48px)",
             maxWidth: 380,
             height: 520,
             borderRadius: 24,
             border: "1px solid rgba(255, 255, 255, 0.14)",
+            background: "rgba(12, 12, 16, 0.96)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 25px 80px rgba(0, 0, 0, 0.85), 0 0 40px rgba(225, 29, 72, 0.2)",
             zIndex: 100,
             display: "flex",
@@ -272,13 +276,14 @@ export default function AiConciergeChat({ onSound }) {
           {/* Quick Prompts Bar */}
           <div
             style={{
-              padding: "6px 12px",
-              background: "rgba(8, 8, 12, 0.6)",
+              padding: "10px 14px",
+              background: "rgba(10, 10, 15, 0.92)",
               display: "flex",
-              gap: 6,
+              gap: 8,
               overflowX: "auto",
               whiteSpace: "nowrap",
-              borderTop: "1px solid rgba(255, 255, 255, 0.04)",
+              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+              scrollbarWidth: "none",
             }}
           >
             {quickPrompts.map((p, idx) => (
@@ -286,14 +291,26 @@ export default function AiConciergeChat({ onSound }) {
                 key={idx}
                 onClick={() => handleSendMessage(p)}
                 style={{
-                  background: "rgba(255, 255, 255, 0.04)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  background: "rgba(255, 255, 255, 0.06)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
                   color: "#cbd5e1",
-                  padding: "4px 10px",
-                  borderRadius: 12,
-                  fontSize: 10,
+                  padding: "6px 12px",
+                  borderRadius: 16,
+                  fontSize: 11,
+                  fontWeight: 600,
                   cursor: "pointer",
                   flexShrink: 0,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(225, 29, 72, 0.15)";
+                  e.currentTarget.style.borderColor = "rgba(225, 29, 72, 0.35)";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                  e.currentTarget.style.color = "#cbd5e1";
                 }}
               >
                 {p}

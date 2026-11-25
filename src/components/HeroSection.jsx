@@ -57,23 +57,24 @@ export default function HeroSection() {
             {GYM_CONFIG.brandSubtitle}
           </div>
 
-          {/* Headline with fluid clamp() */}
+          {/* Headline with fluid clamp() and clean 2-line rhythm */}
           <h1
             style={{
-              fontSize: "clamp(2.5rem, 5.5vw, 4.4rem)",
+              fontSize: "clamp(2.2rem, 4.4vw, 3.8rem)",
               fontWeight: 900,
-              lineHeight: 1.05,
+              lineHeight: 1.1,
               color: "#fff",
               margin: "0 0 20px",
               letterSpacing: "-0.035em",
             }}
           >
-            FORGED IN <br />
+            <span>FORGED IN</span> <br />
             <span
               style={{
                 background: "linear-gradient(135deg, #ffffff 30%, #e11d48 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
+                whiteSpace: "nowrap",
               }}
             >
               DISCIPLINE.
@@ -159,8 +160,8 @@ export default function HeroSection() {
             }}
           >
             <div>
-              <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", fontFamily: "Syne" }}>
-                15,000<span style={{ color: "#e11d48" }}>sq.ft</span>
+              <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", fontFamily: "'Plus Jakarta Sans', sans-serif", fontVariantNumeric: "tabular-nums" }}>
+                15,000<span style={{ color: "#e11d48", fontSize: 18, marginLeft: 2 }}>sq.ft</span>
               </div>
               <div style={{ fontSize: 11, color: "#71717a", fontWeight: 700, textTransform: "uppercase", marginTop: 4 }}>
                 Private Facility
@@ -168,8 +169,8 @@ export default function HeroSection() {
             </div>
 
             <div>
-              <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", fontFamily: "Syne" }}>
-                1:4<span style={{ color: "#e11d48" }}> ratio</span>
+              <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", fontFamily: "'Plus Jakarta Sans', sans-serif", fontVariantNumeric: "tabular-nums" }}>
+                1:4<span style={{ color: "#e11d48", fontSize: 18, marginLeft: 2 }}> ratio</span>
               </div>
               <div style={{ fontSize: 11, color: "#71717a", fontWeight: 700, textTransform: "uppercase", marginTop: 4 }}>
                 Coach to Athlete
@@ -177,8 +178,8 @@ export default function HeroSection() {
             </div>
 
             <div>
-              <div style={{ fontSize: 26, fontWeight: 900, color: "#10b981", fontFamily: "Syne" }}>
-                24<span style={{ color: "#fff" }}>/7</span>
+              <div style={{ fontSize: 26, fontWeight: 900, color: "#10b981", fontFamily: "'Plus Jakarta Sans', sans-serif", fontVariantNumeric: "tabular-nums" }}>
+                24<span style={{ color: "#fff", fontSize: 18 }}>/7</span>
               </div>
               <div style={{ fontSize: 11, color: "#71717a", fontWeight: 700, textTransform: "uppercase", marginTop: 4 }}>
                 Biometric Pass

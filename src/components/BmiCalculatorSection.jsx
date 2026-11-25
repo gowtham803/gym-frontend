@@ -100,7 +100,7 @@ export default function BmiCalculatorSection() {
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.2em", color: "#e11d48", textTransform: "uppercase" }}>
             Self-Assessment Tool
           </div>
-          <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)", fontWeight: 900, color: "#fff", margin: "6px 0 10px" }}>
+          <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)", fontWeight: 900, color: "#fff", margin: "6px 0 10px", lineHeight: 1.15 }}>
             BODY MASS INDEX (BMI) CALCULATOR
           </h2>
           <p style={{ color: "#a1a1aa", fontSize: 13, maxWidth: 520, margin: "0 auto" }}>
