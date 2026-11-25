@@ -1,16 +1,59 @@
-# React + Vite
+# Sanctum Athletic Club — Unified Full-Stack Repository
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A unified single-repository for **Sanctum Athletic Club**, combining the luxury React frontend, interactive AI athletic suite, and the FastAPI / SQLite membership backend.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📁 Monorepo Structure
 
-## React Compiler
+```
+gym-frontend/ (Unified Single Repository)
+├── backend/                  # Python FastAPI Backend
+│   ├── main.py               # API Endpoints (CRUD, dynamic status, calculate expiry)
+│   ├── gym.db                # SQLite Member Database
+│   ├── seed.py               # Sample member seeder
+│   └── requirements.txt      # Python dependencies (fastapi, uvicorn, sqlalchemy)
+│
+├── src/                      # React 19 Frontend
+│   ├── assets/               # Visual assets and icons
+│   ├── components/           # UI, AI Coach, Timetable, Roster, Modals, Gallery
+│   ├── config/               # Centralized gymConfig.js
+│   ├── utils/                # AI engine, audio haptics, CSV export
+│   ├── api.js                # API Client (configurable via VITE_API_BASE)
+│   ├── App.jsx               # Main application orchestration
+│   └── index.css             # Obsidian luxury dark design system
+│
+├── public/                   # Static icons and assets
+├── package.json              # Unified npm scripts & dependencies
+└── vite.config.js            # Vite 8 configuration
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🚀 Quick Start
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 1. Run the Frontend (React + Vite)
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+Open **[http://localhost:5173](http://localhost:5173)** in your browser.
+
+### 2. Run the Backend (FastAPI + SQLite)
+```bash
+# Navigate to backend or run directly:
+npm run backend
+
+# Or using python directly:
+python backend/main.py
+```
+The FastAPI documentation will be available at **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**.
+
+---
+
+## 🌐 Deployments
+- **Frontend Live URL**: [https://gym-frontend-sage.vercel.app/](https://gym-frontend-sage.vercel.app/)
+- **Backend Live URL**: [https://gym-backend-4tbh.onrender.com](https://gym-backend-4tbh.onrender.com)

@@ -1,4 +1,4 @@
-const API_BASE = "https://gym-backend-4tbh.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://gym-backend-4tbh.onrender.com";
 
 export async function fetchMembers(params = {}) {
   const query = new URLSearchParams(params).toString();
